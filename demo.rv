@@ -1,0 +1,18 @@
+// A quick tour of raven-dotenv. Build and run with:
+//   raven build demo.rv -o demo && ./demo
+import std/io { println }
+import "./lib" { parse }
+
+fun main() {
+    let env = "# app config\nNAME=\"raven board\"\nPORT=8080\nDEBUG=yes\n"
+    match parse(env) {
+        Ok(cfg) -> {
+            println("name: ".concat(cfg.get_or("NAME", "(unset)")))
+            println("port: ".concat(cfg.get_int_or("PORT", 3000).to_string()))
+            if cfg.get_bool_or("DEBUG", false) {
+                println("debug logging is on")
+            }
+        },
+        Err(e) -> println(e.to_string()),
+    }
+}

@@ -1,0 +1,112 @@
+import std/string
+import std/test { assert_eq_str, assert_eq_int, assert_true, assert_false, assert_msg }
+import "./lib" { parse, Config }
+
+// Parse `text`, failing the test (with the parse error) if it does not succeed.
+fun ok(text: String) -> Config {
+    return match parse(text) {
+        Ok(c) -> c,
+        Err(e) -> {
+            assert_msg(false, e.to_string())
+            Config.new()
+        },
+    }
+}
+
+fun test_basic_pairs() {
+    let c = ok("FOO=bar\nBAZ=qux\n")
+    assert_eq_int(c.len(), 2)
+    assert_eq_str(c.get_or("FOO", ""), "bar")
+    assert_eq_str(c.get_or("BAZ", ""), "qux")
+    assert_true(c.has("FOO"))
+    assert_false(c.has("NOPE"))
+}
+
+fun test_blank_lines_and_comments() {
+    let c = ok("# a comment\n\nFOO=bar\n   \n# another\nBAZ=qux\n")
+    assert_eq_int(c.len(), 2)
+    assert_eq_str(c.get_or("FOO", ""), "bar")
+}
+
+fun test_inline_comment_after_space() {
+    let c = ok("URL=http://x/y#frag\nTOKEN=abc # trailing comment\n")
+    assert_eq_str(c.get_or("URL", ""), "http://x/y#frag")
+    assert_eq_str(c.get_or("TOKEN", ""), "abc")
+}
+
+fun test_export_prefix() {
+    let c = ok("export NAME=raven\n")
+    assert_eq_str(c.get_or("NAME", ""), "raven")
+}
+
+fun test_whitespace_is_trimmed() {
+    let c = ok("  KEY  =  value  \n")
+    assert_eq_str(c.get_or("KEY", ""), "value")
+}
+
+fun test_double_quotes_with_escapes() {
+    let c = ok("MSG=\"a\\tb\\nc\"\n")
+    assert_eq_str(c.get_or("MSG", ""), "a\tb\nc")
+}
+
+fun test_single_quotes_are_literal() {
+    let c = ok("RAW='a\\tb # not a comment'\n")
+    assert_eq_str(c.get_or("RAW", ""), "a\\tb # not a comment")
+}
+
+fun test_empty_value() {
+    let c = ok("EMPTY=\n")
+    assert_true(c.has("EMPTY"))
+    assert_eq_str(c.get_or("EMPTY", "x"), "")
+}
+
+fun test_typed_accessors() {
+    let c = ok("PORT=8080\nDEBUG=yes\nQUIET=false\nNOTNUM=abc\n")
+    assert_eq_int(c.get_int_or("PORT", 0), 8080)
+    assert_eq_int(c.get_int_or("NOTNUM", -1), -1)
+    assert_eq_int(c.get_int_or("MISSING", 42), 42)
+    assert_true(c.get_bool_or("DEBUG", false))
+    assert_false(c.get_bool_or("QUIET", true))
+    assert_true(c.get_bool_or("MISSING", true))
+}
+
+fun test_require() {
+    let c = ok("PRESENT=1\n")
+    match c.require("PRESENT") {
+        Ok(v) -> assert_eq_str(v, "1"),
+        Err(e) -> assert_msg(false, e),
+    }
+    match c.require("ABSENT") {
+        Ok(v) -> assert_msg(false, "should have been missing"),
+        Err(e) -> assert_true(e.contains("ABSENT")),
+    }
+}
+
+fun test_set_overrides() {
+    let c = ok("K=original\n")
+    c.set("K", "overridden")
+    c.set("NEW", "added")
+    assert_eq_str(c.get_or("K", ""), "overridden")
+    assert_eq_str(c.get_or("NEW", ""), "added")
+}
+
+fun test_missing_equals_is_an_error() {
+    match parse("NOEQUALS\n") {
+        Ok(c) -> assert_msg(false, "expected a syntax error"),
+        Err(e) -> assert_eq_int(e.line, 1),
+    }
+}
+
+fun test_unterminated_quote_is_an_error() {
+    match parse("X=\"oops\n") {
+        Ok(c) -> assert_msg(false, "expected a syntax error"),
+        Err(e) -> assert_true(e.message.contains("unterminated")),
+    }
+}
+
+fun test_empty_key_is_an_error() {
+    match parse("=value\n") {
+        Ok(c) -> assert_msg(false, "expected a syntax error"),
+        Err(e) -> assert_true(e.message.contains("empty key")),
+    }
+}
