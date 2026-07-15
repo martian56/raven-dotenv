@@ -197,7 +197,12 @@ fun _parse_value(rest: String, lineno: Int) -> Result<String, ParseError> {
 // Read a quoted value. `quote` is the delimiter; when `escapes` is true a
 // backslash escapes the next character (double quotes), otherwise the contents
 // are literal (single quotes).
-fun _parse_quoted(rest: String, lineno: Int, quote: String, escapes: Bool) -> Result<String, ParseError> {
+fun _parse_quoted(
+    rest: String,
+    lineno: Int,
+    quote: String,
+    escapes: Bool,
+) -> Result<String, ParseError> {
     let n = rest.length()
     let i = 1
     let out = ""

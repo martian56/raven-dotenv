@@ -1,5 +1,7 @@
 # raven-dotenv
 
+[![CI](https://github.com/martian56/raven-dotenv/actions/workflows/ci.yml/badge.svg)](https://github.com/martian56/raven-dotenv/actions/workflows/ci.yml)
+
 A `.env` parser for Raven. It reads the usual `KEY=value` lines into a config
 object with typed getters, so you ask for an `Int` or a `Bool` and get one back,
 with a fallback for when the key isn't set. No dependencies.
@@ -8,12 +10,12 @@ with a fallback for when the key isn't set. No dependencies.
 
 ```toml
 [dependencies]
-"github.com/martian56/raven-dotenv" = "0.1"
+"github.com/martian56/raven-dotenv" = "v0.1.0"
 ```
 
 ## Usage
 
-```raven
+```rust
 import "github.com/martian56/raven-dotenv" { load }
 
 fun main() {
@@ -34,7 +36,7 @@ names the line it choked on, like `.env:3: unterminated quoted value`.
 
 A `Config` also has `require`, for the keys you can't run without:
 
-```raven
+```rust
 match cfg.require("API_KEY") {
     Ok(key) -> connect(key),
     Err(msg) -> print(msg),     // "missing required key: API_KEY"
