@@ -3,7 +3,7 @@
 [![CI](https://github.com/martian56/raven-dotenv/actions/workflows/ci.yml/badge.svg)](https://github.com/martian56/raven-dotenv/actions/workflows/ci.yml)
 
 A `.env` parser for Raven. It reads the usual `KEY=value` lines into a config
-object with typed getters, so you ask for an `Int` or a `Bool` and get one back,
+object with typed getters, so you ask for an `int` or a `bool` and get one back,
 with a fallback for when the key isn't set. No dependencies.
 
 ## Install
@@ -16,16 +16,16 @@ with a fallback for when the key isn't set. No dependencies.
 ## Usage
 
 ```rust
-import "github.com/martian56/raven-dotenv" { load }
+from "github.com/martian56/raven-dotenv" import load
 
 fun main() {
     match load(".env") {
-        Ok(cfg) -> {
+        case Ok(cfg) {
             let port = cfg.get_int_or("PORT", 8080)
             let url = cfg.get_or("DATABASE_URL", "sqlite://local.db")
             let debug = cfg.get_bool_or("DEBUG", false)
-        },
-        Err(e) -> print(e.to_string()),
+        }
+        case Err(e) { print(e.to_string()) }
     }
 }
 ```
@@ -38,8 +38,8 @@ A `Config` also has `require`, for the keys you can't run without:
 
 ```rust
 match cfg.require("API_KEY") {
-    Ok(key) -> connect(key),
-    Err(msg) -> print(msg),     // "missing required key: API_KEY"
+    case Ok(key) { connect(key) }
+    case Err(msg) { print(msg) }     // "missing required key: API_KEY"
 }
 ```
 
@@ -66,7 +66,7 @@ EMPTY=
 
 | Function | Description |
 |----------|-------------|
-| `parse(text)` | Parse a `.env` string, returns `Result<Config, ParseError>` |
+| `parse(text)` | Parse a `.env` string, returns `Result[Config, ParseError]` |
 | `load(path)` | Read a file and parse it, same return type |
 
 ### `Config`
@@ -74,11 +74,11 @@ EMPTY=
 | Method | Description |
 |--------|-------------|
 | `Config.new()` | An empty config, handy as a base for defaults |
-| `cfg.get(key)` | The raw value, `Option<String>` |
+| `cfg.get(key)` | The raw value, `Option[str]` |
 | `cfg.get_or(key, fallback)` | The value, or `fallback` if it's missing |
 | `cfg.require(key)` | The value, or `Err` naming the missing key |
-| `cfg.get_int(key)` / `get_int_or(key, fallback)` | The value as an `Int` |
-| `cfg.get_bool(key)` / `get_bool_or(key, fallback)` | As a `Bool` (`true`/`1`/`yes`/`on`) |
+| `cfg.get_int(key)` / `get_int_or(key, fallback)` | The value as an `int` |
+| `cfg.get_bool(key)` / `get_bool_or(key, fallback)` | As a `bool` (`true`/`1`/`yes`/`on`) |
 | `cfg.has(key)` | Is `key` set? |
 | `cfg.keys()` / `cfg.len()` | The keys, and how many there are |
 | `cfg.set(key, value)` | Add or overwrite a value |

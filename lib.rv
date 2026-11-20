@@ -1,6 +1,6 @@
 // raven-dotenv: parse .env files into a typed config for Raven.
 //
-//     import "github.com/martian56/raven-dotenv" { load }
+//     from "github.com/martian56/raven-dotenv" import load
 //
 //     fun main() {
 //         match load(".env") {
@@ -16,120 +16,122 @@
 // and inline after whitespace), blank lines, double quotes with `\n`/`\t`/`\r`
 // escapes, and single quotes that take the value literally.
 
-import std/string
-import std/collections
-import std/fs { read }
+import std.string
+import std.collections
+from std.fs import read
 
 // A syntax error in a .env source, carrying the 1-based line it was found on.
-struct ParseError {
-    line: Int,
-    message: String,
+class ParseError {
+    line: int
+    message: str
 }
 
 impl ParseError {
-    fun new(line: Int, message: String) -> ParseError {
-        return ParseError { line, message }
+    fun new(line: int, message: str) -> ParseError {
+        return ParseError(line: line, message: message)
     }
 }
 
 impl ToString for ParseError {
-    fun to_string(self) -> String {
+    fun to_string(self) -> str {
         return ".env:${self.line}: ${self.message}"
     }
 }
 
 // A parsed environment: a set of string keys and values, with typed accessors.
-struct Config {
-    values: Map<String, String>,
+class Config {
+    values: dict[str, str]
 }
 
 impl Config {
     // An empty config, handy as a base for layering defaults under a file.
     fun new() -> Config {
-        return Config { values: Map.new() }
+        return Config(values: Map.new())
     }
 
     // The raw value for `key`, if present.
-    fun get(self, key: String) -> Option<String> {
+    fun get(self, key: str) -> Option[str] {
         return self.values.get(key)
     }
 
     // The value for `key`, or `fallback` when it is absent.
-    fun get_or(self, key: String, fallback: String) -> String {
+    fun get_or(self, key: str, fallback: str) -> str {
         return self.values.get_or(key, fallback)
     }
 
     // The value for `key`, or an error naming the missing key.
-    fun require(self, key: String) -> Result<String, String> {
+    fun require(self, key: str) -> Result[str, str] {
         return match self.values.get(key) {
-            Some(v) -> Ok(v),
-            None -> Err("missing required key: ".concat(key)),
+            case Some(v) { Ok(v) }
+            case None { Err("missing required key: ".concat(key)) }
         }
     }
 
-    // The value parsed as an `Int`, if present and numeric.
-    fun get_int(self, key: String) -> Option<Int> {
+    // The value parsed as an `int`, if present and numeric.
+    fun get_int(self, key: str) -> Option[int] {
         return match self.values.get(key) {
-            Some(v) -> v.parse_int(),
-            None -> None,
+            case Some(v) { v.parse_int() }
+            case None { None }
         }
     }
 
-    // The value as an `Int`, or `fallback` when it is absent or not numeric.
-    fun get_int_or(self, key: String, fallback: Int) -> Int {
+    // The value as an `int`, or `fallback` when it is absent or not numeric.
+    fun get_int_or(self, key: str, fallback: int) -> int {
         return match self.values.get(key) {
-            Some(v) -> match v.parse_int() {
-                Some(n) -> n,
-                None -> fallback,
-            },
-            None -> fallback,
+            case Some(v) {
+                match v.parse_int() {
+                    case Some(n) { n }
+                    case None { fallback }
+                }
+            }
+            case None { fallback }
         }
     }
 
-    // The value read as a `Bool`: true for `true`, `1`, `yes`, or `on`
+    // The value read as a `bool`: true for `true`, `1`, `yes`, or `on`
     // (case-insensitive); false for any other present value; `None` when absent.
-    fun get_bool(self, key: String) -> Option<Bool> {
+    fun get_bool(self, key: str) -> Option[bool] {
         return match self.values.get(key) {
-            Some(v) -> Some(_is_truthy(v)),
-            None -> None,
+            case Some(v) { Some(_is_truthy(v)) }
+            case None { None }
         }
     }
 
-    // The value read as a `Bool`, or `fallback` when it is absent.
-    fun get_bool_or(self, key: String, fallback: Bool) -> Bool {
+    // The value read as a `bool`, or `fallback` when it is absent.
+    fun get_bool_or(self, key: str, fallback: bool) -> bool {
         return match self.values.get(key) {
-            Some(v) -> _is_truthy(v),
-            None -> fallback,
+            case Some(v) { _is_truthy(v) }
+            case None { fallback }
         }
     }
 
     // Whether `key` is set.
-    fun has(self, key: String) -> Bool {
+    fun has(self, key: str) -> bool {
         return self.values.has(key)
     }
 
     // Every key, in no particular order.
-    fun keys(self) -> List<String> {
+    fun keys(self) -> list[str] {
         return self.values.keys()
     }
 
     // The number of keys.
-    fun len(self) -> Int {
+    fun len(self) -> int {
         return self.values.len()
     }
 
     // Insert or overwrite a value. Set defaults before `load` overlays a file,
     // or override after.
-    fun set(self, key: String, value: String) {
+    fun set(self, key: str, value: str) {
         self.values.set(key, value)
     }
 }
 
 // Parse a .env document into a `Config`.
-fun parse(text: String) -> Result<Config, ParseError> {
+fun parse(text: str) -> Result[Config, ParseError] {
     let config = Config.new()
     let rows = text.lines()
-    let i = 0
+    var i = 0
     while i < rows.len() {
         let _applied = _apply_line(config, rows[i], i + 1)?
         i += 1
@@ -138,16 +140,16 @@ fun parse(text: String) -> Result<Config, ParseError> {
 }
 
 // Read the file at `path` and parse it.
-fun load(path: String) -> Result<Config, ParseError> {
+fun load(path: str) -> Result[Config, ParseError] {
     return match read(path) {
-        Ok(text) -> parse(text),
-        Err(e) -> Err(ParseError.new(0, "cannot read ${path}")),
+        case Ok(text) { parse(text) }
+        case Err(e) { Err(ParseError.new(0, "cannot read ${path}")) }
     }
 }
 
 // Parse one line into `config`. Returns Ok(true) when a key/value was set,
 // Ok(false) for a blank line or comment, and Err for a syntax error.
-fun _apply_line(config: Config, raw: String, lineno: Int) -> Result<Bool, ParseError> {
+fun _apply_line(config: Config, raw: str, lineno: int) -> Result[bool, ParseError] {
     let line = raw.trim()
     if line.is_empty() {
         return Ok(false)
@@ -155,7 +157,7 @@ fun _apply_line(config: Config, raw: String, lineno: Int) -> Result<Bool, ParseE
     if line.starts_with("#") {
         return Ok(false)
     }
-    let body = line
+    var body = line
     if body.starts_with("export ") {
         body = body.substring(7, body.length()).trim_start()
     }
@@ -175,7 +177,7 @@ fun _apply_line(config: Config, raw: String, lineno: Int) -> Result<Bool, ParseE
 
 // Parse the value part of a line: a double- or single-quoted string, or a bare
 // value (trailing inline `#` comment and surrounding whitespace removed).
-fun _parse_value(rest: String, lineno: Int) -> Result<String, ParseError> {
+fun _parse_value(rest: str, lineno: int) -> Result[str, ParseError] {
     if rest.is_empty() {
         return Ok("")
     }
@@ -187,7 +189,7 @@ fun _parse_value(rest: String, lineno: Int) -> Result<String, ParseError> {
         return _parse_quoted(rest, lineno, "'", false)
     }
     let comment = rest.index_of(" #")
-    let bare = rest
+    var bare = rest
     if comment >= 0 {
         bare = rest.substring(0, comment)
     }
@@ -197,21 +199,16 @@ fun _parse_value(rest: String, lineno: Int) -> Result<String, ParseError> {
 // Read a quoted value. `quote` is the delimiter; when `escapes` is true a
 // backslash escapes the next character (double quotes), otherwise the contents
 // are literal (single quotes).
-fun _parse_quoted(
-    rest: String,
-    lineno: Int,
-    quote: String,
-    escapes: Bool,
-) -> Result<String, ParseError> {
+fun _parse_quoted(rest: str, lineno: int, quote: str, escapes: bool) -> Result[str, ParseError] {
     let n = rest.length()
-    let i = 1
-    let out = ""
+    var i = 1
+    var out = ""
     while i < n {
         let c = rest.char_at(i)
         if c == quote {
             return Ok(out)
         }
-        if escapes && c == "\\" && i + 1 < n {
+        if escapes and c == "\\" and i + 1 < n {
             out = out.concat(_unescape(rest.char_at(i + 1)))
             i += 2
         } else {
@@ -224,7 +221,7 @@ fun _parse_quoted(
 
 // Map a character following a backslash to its escaped form. An unknown escape
 // keeps the backslash and the character.
-fun _unescape(c: String) -> String {
+fun _unescape(c: str) -> str {
     if c == "n" {
         return "\n"
     }
@@ -246,7 +243,7 @@ fun _unescape(c: String) -> String {
     return "\\".concat(c)
 }
 
-fun _is_truthy(v: String) -> Bool {
+fun _is_truthy(v: str) -> bool {
     let s = v.to_lower()
-    return s == "true" || s == "1" || s == "yes" || s == "on"
+    return s == "true" or s == "1" or s == "yes" or s == "on"
 }
