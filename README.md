@@ -10,7 +10,7 @@ with a fallback for when the key isn't set. No dependencies.
 
 ```toml
 [dependencies]
-"github.com/martian56/raven-dotenv" = "v0.1.0"
+"github.com/martian56/raven-dotenv" = "v0.2.0"
 ```
 
 ## Usage
