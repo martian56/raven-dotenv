@@ -1,15 +1,15 @@
-import std/string
-import std/test { assert_eq_str, assert_eq_int, assert_true, assert_false, assert_msg }
-import "./lib" { parse, Config }
+import std.string
+from std.test import assert_eq_str, assert_eq_int, assert_true, assert_false, assert_msg
+from "./lib" import parse, Config
 
 // Parse `text`, failing the test (with the parse error) if it does not succeed.
-fun ok(text: String) -> Config {
+fun ok(text: str) -> Config {
     return match parse(text) {
-        Ok(c) -> c,
-        Err(e) -> {
+        case Ok(c) { c }
+        case Err(e) {
             assert_msg(false, e.to_string())
             Config.new()
-        },
+        }
     }
 }
 
@@ -73,12 +73,12 @@ fun test_typed_accessors() {
 fun test_require() {
     let c = ok("PRESENT=1\n")
     match c.require("PRESENT") {
-        Ok(v) -> assert_eq_str(v, "1"),
-        Err(e) -> assert_msg(false, e),
+        case Ok(v) { assert_eq_str(v, "1") }
+        case Err(e) { assert_msg(false, e) }
     }
     match c.require("ABSENT") {
-        Ok(v) -> assert_msg(false, "should have been missing"),
-        Err(e) -> assert_true(e.contains("ABSENT")),
+        case Ok(v) { assert_msg(false, "should have been missing") }
+        case Err(e) { assert_true(e.contains("ABSENT")) }
     }
 }
 
@@ -92,21 +92,21 @@ fun test_set_overrides() {
 
 fun test_missing_equals_is_an_error() {
     match parse("NOEQUALS\n") {
-        Ok(c) -> assert_msg(false, "expected a syntax error"),
-        Err(e) -> assert_eq_int(e.line, 1),
+        case Ok(c) { assert_msg(false, "expected a syntax error") }
+        case Err(e) { assert_eq_int(e.line, 1) }
     }
 }
 
 fun test_unterminated_quote_is_an_error() {
     match parse("X=\"oops\n") {
-        Ok(c) -> assert_msg(false, "expected a syntax error"),
-        Err(e) -> assert_true(e.message.contains("unterminated")),
+        case Ok(c) { assert_msg(false, "expected a syntax error") }
+        case Err(e) { assert_true(e.message.contains("unterminated")) }
     }
 }
 
 fun test_empty_key_is_an_error() {
     match parse("=value\n") {
-        Ok(c) -> assert_msg(false, "expected a syntax error"),
-        Err(e) -> assert_true(e.message.contains("empty key")),
+        case Ok(c) { assert_msg(false, "expected a syntax error") }
+        case Err(e) { assert_true(e.message.contains("empty key")) }
     }
 }
